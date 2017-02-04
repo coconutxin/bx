@@ -44,6 +44,11 @@ namespace bx
 
 		void push(Ty* _ptr) // producer only
 		{
+			if (!m_first) 
+			{
+				delete _ptr;
+				return; 
+			}
 			m_last->m_next = new Node( (void*)_ptr);
 			atomicExchangePtr( (void**)&m_last, m_last->m_next);
 			while (m_first != m_divider)
