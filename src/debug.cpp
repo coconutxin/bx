@@ -45,6 +45,11 @@ namespace bx
 
 	void debugOutput(const char* _out)
 	{
+		if (s_cb)
+		{
+			s_cb(_out);
+			return;
+		}
 #if BX_PLATFORM_ANDROID
 #	ifndef BX_ANDROID_LOG_TAG
 #		define BX_ANDROID_LOG_TAG ""

@@ -11,6 +11,8 @@
 
 namespace bx
 {
+	typedef void(*print_out_cb)(const char*);
+	static print_out_cb s_cb = NULL;
 	///
 	void debugBreak();
 
