@@ -43,6 +43,13 @@ namespace bx
 #endif // BX
 	}
 
+	static print_out_cb s_cb = NULL;
+
+	void set_out_cb(print_out_cb _cb)
+	{
+		s_cb = _cb;
+	}
+
 	void debugOutput(const char* _out)
 	{
 		if (s_cb)
