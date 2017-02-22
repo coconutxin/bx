@@ -6,10 +6,6 @@
 #ifndef BX_READERWRITER_H_HEADER_GUARD
 #define BX_READERWRITER_H_HEADER_GUARD
 
-#include <alloca.h>
-#include <stdarg.h> // va_list
-
-#include "bx.h"
 #include "allocator.h"
 #include "error.h"
 #include "uint32_t.h"
@@ -301,6 +297,6 @@ namespace bx
 
 } // namespace bx
 
-#include "readerwriter.inl"
+#include "inline/readerwriter.inl"
 
 #endif // BX_READERWRITER_H_HEADER_GUARD

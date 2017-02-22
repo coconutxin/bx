@@ -6,6 +6,43 @@
 local bxDir = path.getabsolute("..")
 local naclToolchain = ""
 
+local function crtNone()
+
+	defines {
+		"BX_CRT_NONE=1",
+	}
+
+	buildoptions {
+		"-nostdlib",
+		"-nodefaultlibs",
+		"-nostartfiles",
+		"-Wa,--noexecstack",
+		"-ffreestanding",
+	}
+
+	linkoptions {
+		"-nostdlib",
+		"-nodefaultlibs",
+		"-nostartfiles",
+		"-Wa,--noexecstack",
+		"-ffreestanding",
+	}
+
+	configuration { "linux-*" }
+
+		buildoptions {
+			"-mpreferred-stack-boundary=4",
+			"-mstackrealign",
+		}
+
+		linkoptions {
+			"-mpreferred-stack-boundary=4",
+			"-mstackrealign",
+		}
+
+	configuration {}
+end
+
 function toolchain(_buildDir, _libDir)
 
 	newoption {
@@ -514,6 +551,10 @@ function toolchain(_buildDir, _libDir)
 
 	if _OPTIONS["with-avx"] then
 		flags { "EnableAVX" }
+	end
+
+	if _OPTIONS["with-crtnone"] then
+		crtNone()
 	end
 
 	flags {
@@ -1306,6 +1347,7 @@ function toolchain(_buildDir, _libDir)
 		}
 		links {
 			"rt",
+			"dl",
 		}
 		linkoptions {
 			"-Wl,--gc-sections",

@@ -3,6 +3,16 @@
 -- License: https://github.com/bkaradzic/bx#license-bsd-2-clause
 --
 
+newoption {
+	trigger = "with-amalgamated",
+	description = "Enable amalgamated build.",
+}
+
+newoption {
+	trigger = "with-crtnone",
+	description = "Enable build without CRT.",
+}
+
 solution "bx"
 	configurations {
 		"Debug",

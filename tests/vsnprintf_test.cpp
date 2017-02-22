@@ -5,6 +5,8 @@
 
 #include "test.h"
 #include <bx/string.h>
+#include <limits>
+#include <inttypes.h>
 
 TEST_CASE("vsnprintf NULL buffer", "No output buffer provided.")
 {
@@ -38,7 +40,7 @@ static bool test(const char* _expected, const char* _format, ...)
 
 	if (!result)
 	{
-		printf("result (%d) %s, expected (%d) %s\n", len, temp, max-1, _expected);
+		printf("result (%d) '%s', expected (%d) '%s'\n", len, temp, max-1, _expected);
 	}
 
 	return result;
@@ -51,6 +53,18 @@ TEST_CASE("vsnprintf f", "")
 	REQUIRE(test("  13.370", "%*.*f", 8, 3, 13.37) );
 	REQUIRE(test("13.370  ", "%-8.3f", 13.37) );
 	REQUIRE(test("13.370  ", "%*.*f", -8, 3, 13.37) );
+
+	REQUIRE(test("nan     ", "%-8f",  std::numeric_limits<double>::quiet_NaN() ) );
+	REQUIRE(test("     nan", "%8f",   std::numeric_limits<double>::quiet_NaN() ) );
+
+#if !BX_CRT_MSVC
+	// BK - VS2015 CRT vsnprintf returns '-NAN(IND' for some reason?
+	REQUIRE(test("-NAN    ", "%-8F", -std::numeric_limits<double>::quiet_NaN() ) );
+#endif // !BX_CRT_MSVC
+
+	REQUIRE(test("     inf", "%8f",   std::numeric_limits<double>::infinity() ) );
+	REQUIRE(test("inf     ", "%-8f",  std::numeric_limits<double>::infinity() ) );
+	REQUIRE(test("    -INF", "%8F",  -std::numeric_limits<double>::infinity() ) );
 }
 
 TEST_CASE("vsnprintf d/i/o/u/x", "")
@@ -81,12 +95,53 @@ TEST_CASE("vsnprintf d/i/o/u/x", "")
 	REQUIRE(test("0000000000001234ABCD", "%020X",  0x1234abcd) );
 	REQUIRE(test("000000000000edcb5433", "%020x", -0x1234abcd) );
 	REQUIRE(test("000000000000EDCB5433", "%020X", -0x1234abcd) );
+
+#if !BX_CRT_MSVC
+	// BK - VS2015 CRT vsnprintf doesn't support 'j' length sub-specifier?
+	if (BX_ENABLED(BX_ARCH_32BIT) )
+	{
+		REQUIRE(test("2147483647", "%jd", INTMAX_MAX) );
+	}
+	else
+	{
+		REQUIRE(test("9223372036854775807", "%jd", INTMAX_MAX) );
+	}
+#endif // !BX_CRT_MSVC
+
+	REQUIRE(test("18446744073709551615", "%" PRIu64, UINT64_MAX) );
+	REQUIRE(test("ffffffffffffffff", "%016" PRIx64, UINT64_MAX) );
+}
+
+TEST_CASE("vsnprintf modifiers", "")
+{
+	REQUIRE(test("|  1.000000|", "|%10f|",      1.0f) );
+	REQUIRE(test("|1.000000  |", "|%-10f|",     1.0f) );
+	REQUIRE(test("|001.000000|", "|%010f|",     1.0f) );
+	REQUIRE(test("|0000000001|", "|%010.0f|",   1.0f) );
+	REQUIRE(test("|000000001.|", "|%#010.0f|",  1.0f) );
+	REQUIRE(test("|         1|", "|%10.0f|",    1.0f) );
+	REQUIRE(test("|        1.|", "|%#10.0f|",   1.0f) );
+	REQUIRE(test("|       +1.|", "|%#+10.0f|",  1.0f) );
+	REQUIRE(test("|1         |", "|%-10.0f|",   1.0f) );
+	REQUIRE(test("|1.        |", "|%#-10.0f|",  1.0f) );
+	REQUIRE(test("|+1.       |", "|%+#-10.0f|", 1.0f) );
 }
 
 TEST_CASE("vsnprintf p", "")
 {
+#if BX_CRT_MSVC
+	// BK - VS2015 CRT vsnprintf has different output for 'p' pointer specifier.
+	REQUIRE(test("0BADC0DE", "%p", (void*)0xbadc0de));
+	REQUIRE(test("0BADC0DE            ", "%-20p", (void*)0xbadc0de));
+#else
 	REQUIRE(test("0xbadc0de", "%p", (void*)0xbadc0de) );
 	REQUIRE(test("0xbadc0de           ", "%-20p", (void*)0xbadc0de) );
+#endif // BX_CRT_MSVC
+}
+
+TEST_CASE("vsnprintf s", "")
+{
+	REQUIRE(test("(null)", "%s", NULL) );
 }
 
 TEST_CASE("vsnprintf", "")

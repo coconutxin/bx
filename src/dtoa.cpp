@@ -8,6 +8,8 @@
 #include <bx/string.h>
 #include <bx/uint32_t.h>
 
+#include <type_traits>
+
 namespace bx
 {
 	// https://github.com/miloyip/dtoa-benchmark
@@ -422,49 +424,50 @@ namespace bx
 		return length + 2 + exp;
 	}
 
-	int32_t toString(char* _dst, size_t _max, double value)
+	int32_t toString(char* _dst, int32_t _max, double _value)
 	{
-		if (isNan(value) )
-		{
-			return (int32_t)strlncpy(_dst, _max, "NaN");
-		}
-		else if (isInfinite(value) )
-		{
-			return (int32_t)strlncpy(_dst, _max, "Inf");
-		}
-
-		int32_t sign = 0.0 > value ? 1 : 0;
+		int32_t sign = 0 != (doubleToBits(_value) & (UINT64_C(1)<<63) ) ? 1 : 0;
 		if (1 == sign)
 		{
 			*_dst++ = '-';
 			--_max;
-			value = -value;
+			_value = -_value;
+		}
+
+		if (isNan(_value) )
+		{
+			return (int32_t)strlncpy(_dst, _max, "nan") + sign;
+		}
+		else if (isInfinite(_value) )
+		{
+			return (int32_t)strlncpy(_dst, _max, "inf") + sign;
 		}
 
 		int32_t len;
-		if (0.0 == value)
+		if (0.0 == _value)
 		{
 			len = (int32_t)strlncpy(_dst, _max, "0.0");
 		}
 		else
 		{
 			int32_t kk;
-			Grisu2(value, _dst, &len, &kk);
+			Grisu2(_value, _dst, &len, &kk);
 			len = Prettify(_dst, len, kk);
 		}
 
 		return len + sign;
 	}
 
-	static void reverse(char* _dst, size_t _len)
+	static void reverse(char* _dst, int32_t _len)
 	{
-		for (size_t ii = 0, jj = _len - 1; ii < jj; ++ii, --jj)
+		for (int32_t ii = 0, jj = _len - 1; ii < jj; ++ii, --jj)
 		{
 			xchg(_dst[ii], _dst[jj]);
 		}
 	}
 
-	int32_t toString(char* _dst, size_t _max, int32_t _value, uint32_t _base)
+	template<typename Ty>
+	int32_t toStringSigned(char* _dst, int32_t _max, Ty _value, uint32_t _base)
 	{
 		if (_base == 10
 		&&  _value < 0)
@@ -474,7 +477,11 @@ namespace bx
 				return 0;
 			}
 
-			_max = toString(_dst + 1, _max - 1, uint32_t(-_value), _base);
+			_max = toString(_dst + 1
+					, _max - 1
+					, typename std::make_unsigned<Ty>::type(-_value)
+					, _base
+					);
 			if (_max == 0)
 			{
 				return 0;
@@ -484,13 +491,28 @@ namespace bx
 			return int32_t(_max + 1);
 		}
 
-		return toString(_dst, _max, uint32_t(_value), _base);
+		return toString(_dst
+					, _max
+					, typename std::make_unsigned<Ty>::type(_value)
+					, _base
+					);
 	}
 
-	int32_t toString(char* _dst, size_t _max, uint32_t _value, uint32_t _base)
+	int32_t toString(char* _dst, int32_t _max, int32_t _value, uint32_t _base)
+	{
+		return toStringSigned(_dst, _max, _value, _base);
+	}
+
+	int32_t toString(char* _dst, int32_t _max, int64_t _value, uint32_t _base)
+	{
+		return toStringSigned(_dst, _max, _value, _base);
+	}
+
+	template<typename Ty>
+	int32_t toStringUnsigned(char* _dst, int32_t _max, Ty _value, uint32_t _base)
 	{
 		char data[32];
-		size_t len = 0;
+		int32_t len = 0;
 
 		if (_base > 16
 		||  _base < 2)
@@ -500,7 +522,7 @@ namespace bx
 
 		do
 		{
-			const uint32_t rem = _value % _base;
+			const Ty rem = _value % _base;
 			_value /= _base;
 			if (rem < 10)
 			{
@@ -523,6 +545,16 @@ namespace bx
 		memCopy(_dst, data, len);
 		_dst[len] = '\0';
 		return int32_t(len);
+	}
+
+	int32_t toString(char* _dst, int32_t _max, uint32_t _value, uint32_t _base)
+	{
+		return toStringUnsigned(_dst, _max, _value, _base);
+	}
+
+	int32_t toString(char* _dst, int32_t _max, uint64_t _value, uint32_t _base)
+	{
+		return toStringUnsigned(_dst, _max, _value, _base);
 	}
 
 } // namespace bx
